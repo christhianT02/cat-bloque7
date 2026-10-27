@@ -1129,6 +1129,7 @@
       </div>
       <div class="header-actions">
         <button class="btn-header-add" onclick="openAddEquipoSheet()">➕ TAG</button>
+        <button class="btn-header-add" style="background:var(--cat-dark-700); color:var(--cat-yellow); border:1px solid var(--cat-border);" onclick="forceAppUpdate()" title="Recargar última versión">🔄</button>
         <div class="sync-status-pill" id="syncStatusPill" onclick="syncWithGoogleDriveManual()">
           <span id="syncDot" style="width: 8px; height: 8px; border-radius: 50%; background: #9CA3AF; display: inline-block;"></span>
           <span id="syncText">Conectando...</span>
@@ -2145,6 +2146,52 @@
     }
 
     // ==========================================
+        function renderDashboardEngineCard(e) {
+      const w = getWarrantyInfo(e.ovhDate);
+      const isSeg = hasActiveSeguimiento(e);
+      const isPendG = hasPendingGarantia(e);
+      const hasPending = isSeg || isPendG;
+      const eUpper = (e.estado || 'OPERATIVO').toUpperCase();
+      let statusClass = 'status-operativo';
+      if (eUpper === 'INOPERATIVO') statusClass = 'status-inoperativo';
+      if (eUpper === 'STANDBY') statusClass = 'status-standby';
+
+      const serieStr = (e.serieMotor && e.serieMotor.trim() !== '' && e.serieMotor !== 'N/A')
+        ? e.serieMotor
+        : ((e.serieGenset && e.serieGenset.trim() !== '' && e.serieGenset !== 'N/A' && e.serieGenset !== 'NO TIENE') ? e.serieGenset : 'S/N');
+
+      const posBadge = e.posicion ? ('<span class="pos-badge" style="font-size:10px; padding:1px 5px;">#' + e.posicion + '</span>') : '';
+      const wBadge = w.status === 'active'
+        ? '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.3);">🛡️ En Garantía</span>'
+        : '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1);">Sin Garantía</span>';
+
+      let pendBadge = '';
+      if (hasPending) {
+        if (isPendG) {
+          pendBadge = '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.4);">🛡️ Garantía Pendiente</span>';
+        } else {
+          pendBadge = '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.2); color:#FBBF24; border:1px solid rgba(245,158,11,0.4);">🔍 En Seguimiento</span>';
+        }
+      }
+
+      return '<div class="engine-mini-card ' + (eUpper === 'INOPERATIVO' ? 'is-inoperativo' : '') + '" data-eqid="' + e.id + '" onclick="openEquipmentDetailsModal(this.dataset.eqid)">'
+        + '<div class="mini-stripe"></div>'
+        + '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">'
+        +   '<div style="font-size:14px; font-weight:900; color:var(--cat-yellow); display:flex; align-items:center; gap:5px;">'
+        +     posBadge + ' ' + (e.tag || '')
+        +   '</div>'
+        +   '<span class="status-badge ' + statusClass + '" style="font-size:9px; font-weight:800;">' + eUpper + '</span>'
+        + '</div>'
+        + '<div style="font-size:11px; color:var(--cat-text-muted); margin-top:3px;">'
+        +   'Serie: <strong style="color:var(--cat-text);">' + serieStr + '</strong>'
+        + '</div>'
+        + '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; flex-wrap:wrap; gap:4px;">'
+        +   wBadge
+        +   pendBadge
+        + '</div>'
+        + '</div>';
+    }
+
     // RENDER DASHBOARD (Organizado por Locaciones)
     // ==========================================
     function renderDashboard() {
@@ -2226,46 +2273,7 @@
             </div>
 
             <div class="location-engines-grid">
-              ${eqList.map(e => {
-                const ovh = getOverhaulInfo(e.horasActuales, e.horasEnOvh, e.specs, e.modelo);
-                const isSeg = hasActiveSeguimiento(e);
-                const isPendG = hasPendingGarantia(e);
-                const eUpper = (e.estado || 'OPERATIVO').toUpperCase();
-                const notesC = (e.notas && e.notas.length) || 0;
-
-                return `
-                  <div class="engine-mini-card ${eUpper === 'INOPERATIVO' ? 'is-inoperativo' : ''}" onclick="openEquipmentDetailsModal('${e.id}')">
-                    <div class="mini-stripe"></div>
-                    <div class="mini-card-top">
-                      <div class="mini-card-tag">
-                        ${e.posicion ? `<span class="pos-badge" style="font-size:10px; padding:1px 5px;">#${e.posicion}</span>` : ''}
-                        ${e.tag}
-                      </div>
-                      <span class="status-badge ${eUpper === 'INOPERATIVO' ? 'status-inoperativo' : (eUpper === 'STANDBY' ? 'status-standby' : 'status-operativo')}" style="font-size:9px;">
-                        ${eUpper}
-                      </span>
-                    </div>
-
-                    <div class="mini-card-details">
-                      <span>${e.modelo} (${e.specs ? e.specs.rpm : 1800} RPM)</span>
-                      <strong style="color:var(--cat-yellow);">${Number(e.horasActuales || 0).toLocaleString()} h</strong>
-                    </div>
-
-                    <div class="mini-card-concept" style="color:${ovh.isOverdue ? '#F87171' : '#34D399'};">
-                      ${ovh.statusText}
-                    </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
-                      <div style="display:flex; gap:3px;">
-                        ${isPendG ? `<span style="font-size:9px; background:rgba(16,185,129,0.2); color:#34D399; padding:1px 4px; border-radius:3px;">🛡️ Garantía</span>` : ''}
-                        ${isSeg && !isPendG ? `<span style="font-size:9px; background:rgba(245,158,11,0.2); color:#FBBF24; padding:1px 4px; border-radius:3px;">🔍 Seguimiento</span>` : ''}
-                      </div>
-                      ${notesC > 0 ? `<span style="font-size:10px; color:#93C5FD;">📝 ${notesC}</span>` : ''}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
+              ${eqList.map(renderDashboardEngineCard).join('')}</div>
           </div>
         `;
       });
@@ -3349,10 +3357,29 @@ ${novs || '- Sin novedades especificadas.'}`;
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // Service Worker registration
+    // Force Cache Clear and Reload
+    function forceAppUpdate() {
+      showToast('Actualizando a la última versión...');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (let r of regs) r.unregister();
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+          setTimeout(() => window.location.reload(true), 300);
+        });
+      } else {
+        setTimeout(() => window.location.reload(true), 300);
+      }
+    }
+
+    // Service Worker registration with Network-First
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js?v=10').then(reg => {
+          reg.update();
+        }).catch(() => {});
       });
     }
 
