@@ -1139,46 +1139,9 @@
   </header>
 
   <!-- Quick Filter Chips (Equipos View) -->
-  <div class="quick-stats-strip" id="quickStatsStrip">
-    <div class="stat-chip active" id="chipAll" onclick="setQuickFilter('all')">
-      <span>Todos</span> <span class="stat-num" id="statAll">0</span>
-    </div>
-    <div class="stat-chip" id="chipOverdue" onclick="setQuickFilter('overdue')">
-      <span>⚠️ Pasados OVH</span> <span class="stat-num" style="color:#EF4444;" id="statOverdue">0</span>
-    </div>
-    <div class="stat-chip" id="chipWarranty" onclick="setQuickFilter('warranty')">
-      <span>🛡️ En Garantía</span> <span class="stat-num" style="color:#10B981;" id="statWarranty">0</span>
-    </div>
-    <div class="stat-chip" id="chipSeguimiento" onclick="setQuickFilter('seguimiento')">
-      <span>🔍 Seguimiento / Pendientes</span> <span class="stat-num" style="color:#FBBF24;" id="statSeguimiento">0</span>
-    </div>
-    <div class="stat-chip" id="chipHistory" onclick="setQuickFilter('history')">
-      <span>📜 Con Historial</span> <span class="stat-num" style="color:#60A5FA;" id="statHistory">0</span>
-    </div>
-  </div>
-
-  <!-- Search & Stations (Equipos View) -->
-  <div class="search-filter-section" id="searchSection">
-    <div class="search-box-row">
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="Buscar TAG, Serie, Modelo, Estación..." oninput="renderCards()">
-      </div>
-      <button class="btn-quick-add-tag" onclick="openAddEquipoSheet()">➕ Nuevo</button>
-    </div>
-    <div class="stations-scroll" id="stationsScroll">
-      <!-- Injected station pills -->
-    </div>
-  </div>
-
-  <!-- VIEW 1: EQUIPOS CARDS FEED -->
-  <main id="viewEquipos" class="cards-container">
-    <!-- Equipment cards injected dynamically -->
-  </main>
-
-  <!-- VIEW 2: DASHBOARD ORGANIZADO POR LOCACIONES -->
-  <main id="viewDashboard" class="dashboard-view" style="display: none;">
-    <!-- Dashboard KPIs -->
+  <!-- MAIN VIEW: DASHBOARD ORGANIZADO POR LOCACIONES -->
+  <main id="viewDashboard" class="dashboard-view" style="display: flex; flex-direction: column; gap: 10px;">
+    <!-- Dashboard Top KPIs -->
     <div class="dashboard-kpi-grid">
       <div class="kpi-card">
         <span class="kpi-title">Locaciones</span>
@@ -1198,14 +1161,36 @@
       </div>
     </div>
 
+    <!-- Quick Status Filter Chips -->
+    <div class="quick-stats-strip" id="quickStatsStrip" style="margin: 0; padding: 2px 0;">
+      <div class="stat-chip active" id="chipAll" onclick="setDashFilter('all')">
+        <span>Todos</span> <span class="stat-num" id="statAll">0</span>
+      </div>
+      <div class="stat-chip" id="chipOverdue" onclick="setDashFilter('overdue')">
+        <span>⚠️ Pasados OVH</span> <span class="stat-num" style="color:#F87171;" id="statOverdue">0</span>
+      </div>
+      <div class="stat-chip" id="chipWarranty" onclick="setDashFilter('warranty')">
+        <span>🛡️ En Garantía</span> <span class="stat-num" style="color:#34D399;" id="statWarranty">0</span>
+      </div>
+      <div class="stat-chip" id="chipSeguimiento" onclick="setDashFilter('seguimiento')">
+        <span>🔍 Seguimiento / Pendientes</span> <span class="stat-num" style="color:#FBBF24;" id="statSeguimiento">0</span>
+      </div>
+      <div class="stat-chip" id="chipHistory" onclick="setDashFilter('history')">
+        <span>📜 Con Historial</span> <span class="stat-num" style="color:#60A5FA;" id="statHistory">0</span>
+      </div>
+    </div>
+
     <!-- Search in Dashboard -->
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="dashSearchInput" placeholder="Filtrar locación o TAG en dashboard..." oninput="renderDashboard()">
+    <div class="search-box-row" style="margin: 0;">
+      <div class="search-box" style="flex: 1;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="dashSearchInput" placeholder="Buscar TAG, Serie, Modelo, Estación..." oninput="renderDashboard()">
+      </div>
+      <button class="btn-quick-add-tag" onclick="openAddEquipoSheet()">➕ Nuevo</button>
     </div>
 
     <!-- Location Cards Container -->
-    <div id="dashLocationsContainer" style="display: flex; flex-direction: column; gap: 14px;">
+    <div id="dashLocationsContainer" style="display: flex; flex-direction: column; gap: 14px; margin-top: 4px;">
       <!-- Location cards with internal equipment injected here -->
     </div>
   </main>
@@ -1371,11 +1356,7 @@
 
   <!-- Bottom Navigation Bar (4 TABS) -->
   <nav class="bottom-nav">
-    <button class="nav-item active" id="navBtnEquipos" onclick="switchNav('equipos')">
-      <span class="nav-icon">🚜</span>
-      <span>Equipos</span>
-    </button>
-    <button class="nav-item" id="navBtnDashboard" onclick="switchNav('dashboard')">
+    <button class="nav-item active" id="navBtnDashboard" onclick="switchNav('dashboard')">
       <span class="nav-icon">📊</span>
       <span>Dashboard</span>
     </button>
@@ -2074,14 +2055,10 @@
       container.innerHTML = html;
     }
 
-    function filterStation(st) {
-      currentStation = st;
-      renderStations();
-      renderCards();
-    }
+    let currentDashFilter = 'all';
 
-    function setQuickFilter(f) {
-      currentQuickFilter = f;
+    function setDashFilter(f) {
+      currentDashFilter = f;
       document.querySelectorAll('.stat-chip').forEach(c => c.classList.remove('active'));
       const activeChip = {
         all: 'chipAll',
@@ -2090,248 +2067,212 @@
         seguimiento: 'chipSeguimiento',
         history: 'chipHistory'
       }[f];
-      if (activeChip) document.getElementById(activeChip).classList.add('active');
-      renderCards();
+      if (activeChip && document.getElementById(activeChip)) {
+        document.getElementById(activeChip).classList.add('active');
+      }
+      renderDashboard();
     }
 
-    // RENDER EQUIPOS CARDS FEED
+    function setQuickFilter(f) {
+      setDashFilter(f);
+    }
+
+    function filterStation(st) {
+      renderDashboard();
+    }
+
+    function renderStations() {
+      // Station manager in settings still uses stationsList
+    }
+
     function renderCards() {
-      const search = document.getElementById('searchInput').value.toLowerCase().trim();
-      let overdueCount = 0;
-      let warrantyCount = 0;
-      let seguimientoCount = 0;
-      let historyCount = 0;
-
-      const filtered = equipos.filter(eq => {
-        const w = getWarrantyInfo(eq.ovhDate);
-        const ovh = getOverhaulInfo(eq.horasActuales, eq.horasEnOvh, eq.specs, eq.modelo);
-        const isSeg = hasActiveSeguimiento(eq);
-        const hasHistory = eq.historial && eq.historial.length > 0;
-
-        if (ovh.isOverdue) overdueCount++;
-        if (w.status === 'active') warrantyCount++;
-        if (isSeg) seguimientoCount++;
-        if (hasHistory) historyCount++;
-
-        if (currentStation !== 'all' && eq.ubicacion !== currentStation) return false;
-
-        if (currentQuickFilter === 'overdue' && !ovh.isOverdue) return false;
-        if (currentQuickFilter === 'warranty' && w.status !== 'active') return false;
-        if (currentQuickFilter === 'seguimiento' && !isSeg) return false;
-        if (currentQuickFilter === 'history' && !hasHistory) return false;
-
-        if (search) {
-          const text = [eq.tag, eq.modelo, eq.serieMotor, eq.serieGenset, eq.ubicacion, eq.otOvh, (eq.notas || []).map(n => n.texto).join(' ')].join(' ').toLowerCase();
-          if (!text.includes(search)) return false;
-        }
-
-        return true;
-      });
-
-      // Sort: Station, Position (1-6), TAG
-      filtered.sort((a, b) => {
-        if (currentStation === 'all') {
-          const stCompare = (a.ubicacion || '').localeCompare(b.ubicacion || '');
-          if (stCompare !== 0) return stCompare;
-        }
-        const posA = a.posicion || 99;
-        const posB = b.posicion || 99;
-        if (posA !== posB) return posA - posB;
-        return (a.tag || '').localeCompare(b.tag || '');
-      });
-
-      document.getElementById('statAll').innerText = equipos.length;
-      document.getElementById('statOverdue').innerText = overdueCount;
-      document.getElementById('statWarranty').innerText = warrantyCount;
-      document.getElementById('statSeguimiento').innerText = seguimientoCount;
-      document.getElementById('statHistory').innerText = historyCount;
-
-      const container = document.getElementById('viewEquipos');
-      if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding: 40px 20px; color:var(--cat-text-muted);">
-          <p style="font-size:16px; font-weight:700;">No se encontraron equipos</p>
-          <p style="font-size:12px; margin-top:4px;">Cambia la búsqueda o el filtro seleccionado.</p>
-        </div>`;
-        return;
-      }
-
-      let html = '';
-      filtered.forEach(eq => {
-        const w = getWarrantyInfo(eq.ovhDate);
-        const ovh = getOverhaulInfo(eq.horasActuales, eq.horasEnOvh, eq.specs, eq.modelo);
-        const isSeg = hasActiveSeguimiento(eq);
-        const isPendGarantia = hasPendingGarantia(eq);
-        const histCount = (eq.historial && eq.historial.length) || 0;
-        const notesCount = (eq.notas && eq.notas.length) || 0;
-
-        const estadoUpper = (eq.estado || 'OPERATIVO').toUpperCase();
-        let statusClass = 'status-operativo';
-        if (estadoUpper === 'INOPERATIVO') statusClass = 'status-inoperativo';
-        if (estadoUpper === 'STANDBY') statusClass = 'status-standby';
-
-        const gensetVal = eq.serieGenset && eq.serieGenset.trim() !== '' && eq.serieGenset !== 'N/A' && eq.serieGenset !== 'NO TIENE'
-          ? eq.serieGenset
-          : '<span style="color:#9CA3AF; font-weight:normal;">Industrial (Sin Generador)</span>';
-
-        html += `
-          <div class="card ${estadoUpper === 'INOPERATIVO' ? 'is-inoperativo' : ''} ${ovh.isOverdue ? 'is-overdue' : ''}">
-            <div class="card-stripe"></div>
-            <div class="card-top">
-              <div class="card-title-group">
-                <div class="card-tag-row">
-                  <div class="card-tag">${eq.tag}</div>
-                  ${eq.posicion ? `<span class="pos-badge">Posición #${eq.posicion}</span>` : ''}
-                </div>
-                <div class="card-sub">
-                  ${eq.modelo}
-                  <span class="rpm-tag">${eq.specs ? eq.specs.rpm : 1800} RPM</span>
-                </div>
-              </div>
-              <div class="card-badges-row">
-                <span class="status-badge ${statusClass}">${estadoUpper}</span>
-                ${isPendGarantia ? `<span class="insignia-garantia-pendiente">🛡️ Garantía Pendiente</span>` : ''}
-                ${isSeg && !isPendGarantia ? `<span class="insignia-seguimiento">🔍 En Seguimiento</span>` : ''}
-                ${ovh.isOverdue ? `<span class="insignia-ovh-pasado">⚠️ OVH Pasado (+${ovh.overdueHours.toLocaleString()}h)</span>` : ''}
-              </div>
-            </div>
-
-            <div class="card-details">
-              <div class="detail-item">
-                <span class="detail-label">📍 Estación</span>
-                <span class="detail-val location">${eq.ubicacion}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Horómetro Actual</span>
-                <span class="detail-val" style="color:var(--cat-yellow); font-size:13px; font-weight:800;">
-                  ${Number(eq.horasActuales || 0).toLocaleString()} hrs
-                </span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Serie Motor</span>
-                <span class="detail-val">${eq.serieMotor || 'N/A'}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Serie Generador</span>
-                <span class="detail-val">${gensetVal}</span>
-              </div>
-            </div>
-
-            <!-- Overhaul Tracking with Full Concept -->
-            <div class="ovh-hours-strip">
-              <span>Trabajadas desde OVH: <strong>${ovh.horasTrabajadas.toLocaleString()}h</strong> ${ovh.hasOvhBase ? `(Base: ${ovh.horasEnOvh.toLocaleString()}h)` : '<span style="color:#9CA3AF;">(Sin base OVH)</span>'}</span>
-              <span style="color:${ovh.isOverdue ? '#F87171' : '#34D399'}; font-weight:700;">
-                ${ovh.statusText}
-              </span>
-            </div>
-
-            <!-- Warranty Banner -->
-            <div class="warranty-banner ${w.status === 'active' ? 'active' : 'expired'}">
-              <span>${w.label}</span>
-              <span>OT: <strong>${eq.otOvh || 'Pendiente'}</strong></span>
-            </div>
-
-            <!-- Notes preview pill if any -->
-            ${notesCount > 0 ? `
-              <div class="notes-preview-strip" onclick="openEditEquipoSheet('${eq.id}')">
-                <span>📝 <strong>${notesCount} nota(s):</strong> ${escapeHtml(eq.notas[notesCount - 1].texto).slice(0, 48)}...</span>
-                <span>Ver &rarr;</span>
-              </div>
-            ` : ''}
-
-            <!-- History Pill Row -->
-            <div class="history-btn-row" onclick="openHistorySheet('${eq.id}')">
-              <div class="history-btn-label">
-                <span>📜</span> Historial de Trabajos y Novedades
-              </div>
-              <span class="history-count-badge">${histCount} registro${histCount === 1 ? '' : 's'}</span>
-            </div>
-
-            <!-- Card Actions -->
-            <div class="card-actions-grid">
-              <button class="btn-action btn-novedad" onclick="openEmailSheet('${eq.id}')">
-                <span>✉️</span> Novedad
-              </button>
-              <button class="btn-action btn-horas-only" onclick="openQuickHoursSheet('${eq.id}')">
-                <span>⏱️</span> Horas
-              </button>
-              <button class="btn-action btn-edit-equipo" onclick="openEditEquipoSheet('${eq.id}')">
-                <span>✏️</span> Editar
-              </button>
-            </div>
-          </div>
-        `;
-      });
-
-      container.innerHTML = html;
+      renderDashboard();
     }
 
     // ==========================================
-        function renderDashboardEngineCard(e) {
-      const w = getWarrantyInfo(e.ovhDate);
-      const isSeg = hasActiveSeguimiento(e);
-      const isPendG = hasPendingGarantia(e);
-      const hasPending = isSeg || isPendG;
-      const eUpper = (e.estado || 'OPERATIVO').toUpperCase();
+    // RENDER ORDERLY EQUIPMENT CARD (Used in Dashboard)
+    // ==========================================
+    function renderDashboardEngineCard(eq) {
+      const w = getWarrantyInfo(eq.ovhDate);
+      const ovh = getOverhaulInfo(eq.horasActuales, eq.horasEnOvh, eq.specs, eq.modelo);
+      const isSeg = hasActiveSeguimiento(eq);
+      const isPendGarantia = hasPendingGarantia(eq);
+      const histCount = (eq.historial && eq.historial.length) || 0;
+      const notesCount = (eq.notas && eq.notas.length) || 0;
+
+      const estadoUpper = (eq.estado || 'OPERATIVO').toUpperCase();
       let statusClass = 'status-operativo';
-      if (eUpper === 'INOPERATIVO') statusClass = 'status-inoperativo';
-      if (eUpper === 'STANDBY') statusClass = 'status-standby';
+      if (estadoUpper === 'INOPERATIVO') statusClass = 'status-inoperativo';
+      if (estadoUpper === 'STANDBY') statusClass = 'status-standby';
 
-      const serieStr = (e.serieMotor && e.serieMotor.trim() !== '' && e.serieMotor !== 'N/A')
-        ? e.serieMotor
-        : ((e.serieGenset && e.serieGenset.trim() !== '' && e.serieGenset !== 'N/A' && e.serieGenset !== 'NO TIENE') ? e.serieGenset : 'S/N');
+      const gensetVal = (eq.serieGenset && eq.serieGenset.trim() !== '' && eq.serieGenset !== 'N/A' && eq.serieGenset !== 'NO TIENE')
+        ? eq.serieGenset
+        : '<span style="color:#9CA3AF; font-weight:normal;">Industrial (Sin Generador)</span>';
 
-      const posBadge = e.posicion ? ('<span class="pos-badge" style="font-size:10px; padding:1px 5px;">#' + e.posicion + '</span>') : '';
-      const wBadge = w.status === 'active'
-        ? '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.3);">🛡️ En Garantía</span>'
-        : '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:#9CA3AF; border:1px solid rgba(255,255,255,0.1);">Sin Garantía</span>';
+      const posBadgeHtml = eq.posicion ? ('<span class="pos-badge">#' + eq.posicion + '</span>') : '';
+      const pendGarantiaHtml = isPendGarantia ? '<span class="insignia-garantia-pendiente">🛡️ Garantía Pendiente</span>' : '';
+      const segHtml = (isSeg && !isPendGarantia) ? '<span class="insignia-seguimiento">🔍 En Seguimiento</span>' : '';
+      const ovhOverdueHtml = ovh.isOverdue ? ('<span class="insignia-ovh-pasado">⚠️ OVH Pasado (+' + ovh.overdueHours.toLocaleString() + 'h)</span>') : '';
 
-      let pendBadge = '';
-      if (hasPending) {
-        if (isPendG) {
-          pendBadge = '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.2); color:#34D399; border:1px solid rgba(16,185,129,0.4);">🛡️ Garantía Pendiente</span>';
-        } else {
-          pendBadge = '<span style="font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.2); color:#FBBF24; border:1px solid rgba(245,158,11,0.4);">🔍 En Seguimiento</span>';
-        }
+      let notesStripHtml = '';
+      if (notesCount > 0) {
+        const lastNote = eq.notas[notesCount - 1];
+        const lastNoteText = (lastNote && lastNote.texto) ? escapeHtml(lastNote.texto).slice(0, 48) : '';
+        notesStripHtml = '<div class="notes-preview-strip" data-eqid="' + eq.id + '" onclick="openEquipmentDetailsModal(this.dataset.eqid)">'
+          + '<span>📝 <strong>' + notesCount + ' nota(s):</strong> ' + lastNoteText + '...</span>'
+          + '<span>Ver &rarr;</span>'
+          + '</div>';
       }
 
-      return '<div class="engine-mini-card ' + (eUpper === 'INOPERATIVO' ? 'is-inoperativo' : '') + '" data-eqid="' + e.id + '" onclick="openEquipmentDetailsModal(this.dataset.eqid)">'
-        + '<div class="mini-stripe"></div>'
-        + '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">'
-        +   '<div style="font-size:14px; font-weight:900; color:var(--cat-yellow); display:flex; align-items:center; gap:5px;">'
-        +     posBadge + ' ' + (e.tag || '')
+      const ovhStatusColor = ovh.isOverdue ? '#F87171' : '#34D399';
+      const baseOvhHtml = ovh.hasOvhBase
+        ? '(Base: ' + ovh.horasEnOvh.toLocaleString() + 'h)'
+        : '<span style="color:#9CA3AF;">(Sin base OVH)</span>';
+
+      return '<div class="card ' + (estadoUpper === 'INOPERATIVO' ? 'is-inoperativo' : '') + '">'
+        + '<div class="card-stripe"></div>'
+        + '<div class="card-top">'
+        +   '<div class="card-title-group">'
+        +     '<div class="card-tag-row" data-eqid="' + eq.id + '" onclick="openEquipmentDetailsModal(this.dataset.eqid)" style="cursor:pointer;" title="Tocar para ver ficha completa">'
+        +       posBadgeHtml
+        +       '<div class="card-tag" style="display:inline-block;">' + (eq.tag || '') + '</div>'
+        +       '<span style="font-size:12px; color:var(--cat-yellow); margin-left:4px;">ℹ️</span>'
+        +     '</div>'
+        +     '<div class="card-sub">'
+        +       (eq.modelo || '') + ' '
+        +       '<span class="rpm-tag">' + (eq.specs ? eq.specs.rpm : 1800) + ' RPM</span>'
+        +     '</div>'
         +   '</div>'
-        +   '<span class="status-badge ' + statusClass + '" style="font-size:9px; font-weight:800;">' + eUpper + '</span>'
+        +   '<div class="card-badges-row">'
+        +     '<span class="status-badge ' + statusClass + '">' + estadoUpper + '</span>'
+        +     pendGarantiaHtml
+        +     segHtml
+        +     ovhOverdueHtml
+        +   '</div>'
         + '</div>'
-        + '<div style="font-size:11px; color:var(--cat-text-muted); margin-top:3px;">'
-        +   'Serie: <strong style="color:var(--cat-text);">' + serieStr + '</strong>'
+
+        <!-- Details Grid (No redundes ubicacion!) -->
+        + '<div class="card-details" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px 12px; padding:10px 14px; background:rgba(0,0,0,0.25);">'
+        +   '<div class="detail-item">'
+        +     '<span class="detail-label">Horómetro Actual</span>'
+        +     '<span class="detail-val" style="color:var(--cat-yellow); font-size:13px; font-weight:800;">'
+        +       Number(eq.horasActuales || 0).toLocaleString() + ' hrs'
+        +     '</span>'
+        +   '</div>'
+        +   '<div class="detail-item">'
+        +     '<span class="detail-label">Serie Motor</span>'
+        +     '<span class="detail-val">' + (eq.serieMotor || 'N/A') + '</span>'
+        +   '</div>'
+        +   '<div class="detail-item">'
+        +     '<span class="detail-label">Serie Generador</span>'
+        +     '<span class="detail-val">' + gensetVal + '</span>'
+        +   '</div>'
         + '</div>'
-        + '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; flex-wrap:wrap; gap:4px;">'
-        +   wBadge
-        +   pendBadge
+
+        <!-- Overhaul Tracking with Full Concept -->
+        + '<div class="ovh-hours-strip">'
+        +   '<span>Trabajadas desde OVH: <strong>' + ovh.horasTrabajadas.toLocaleString() + 'h</strong> ' + baseOvhHtml + '</span>'
+        +   '<span style="color:' + ovhStatusColor + '; font-weight:700;">' + ovh.statusText + '</span>'
+        + '</div>'
+
+        <!-- Warranty Banner -->
+        + '<div class="warranty-banner ' + (w.status === 'active' ? 'active' : 'expired') + '">'
+        +   '<span>' + w.label + '</span>'
+        +   '<span>OT: <strong>' + (eq.otOvh || 'Pendiente') + '</strong></span>'
+        + '</div>'
+
+        + notesStripHtml
+
+        <!-- History Row -->
+        + '<div class="history-btn-row" data-eqid="' + eq.id + '" onclick="openHistorySheet(this.dataset.eqid)">'
+        +   '<div class="history-btn-label">'
+        +     '<span>📜</span> Historial de Trabajos y Novedades'
+        +   '</div>'
+        +   '<span class="history-count-badge">' + histCount + ' registro' + (histCount === 1 ? '' : 's') + '</span>'
+        + '</div>'
+
+        <!-- Card Actions -->
+        + '<div class="card-actions-grid">'
+        +   '<button class="btn-action btn-novedad" data-eqid="' + eq.id + '" onclick="openEmailSheet(this.dataset.eqid)">'
+        +     '<span>✉️</span> Novedad'
+        +   '</button>'
+        +   '<button class="btn-action btn-horas-only" data-eqid="' + eq.id + '" onclick="openQuickHoursSheet(this.dataset.eqid)">'
+        +     '<span>⏱️</span> Horas'
+        +   '</button>'
+        +   '<button class="btn-action btn-edit-equipo" data-eqid="' + eq.id + '" onclick="openEditEquipoSheet(this.dataset.eqid)">'
+        +     '<span>✏️</span> Editar'
+        +   '</button>'
         + '</div>'
         + '</div>';
     }
 
+    // ==========================================
     // RENDER DASHBOARD (Organizado por Locaciones)
     // ==========================================
     function renderDashboard() {
       const q = (document.getElementById('dashSearchInput') ? document.getElementById('dashSearchInput').value : '').toLowerCase().trim();
 
-      // Group by location
-      const locMap = {};
+      // Global KPI counts
       let totalOp = 0;
       let totalStby = 0;
       let totalInop = 0;
+      let overdueCount = 0;
+      let warrantyCount = 0;
+      let seguimientoCount = 0;
+      let historyCount = 0;
 
       equipos.forEach(eq => {
-        const u = eq.ubicacion || 'SIN ASIGNAR';
-        if (!locMap[u]) locMap[u] = [];
-        locMap[u].push(eq);
-
         const st = (eq.estado || '').toUpperCase();
         if (st === 'OPERATIVO') totalOp++;
         else if (st === 'STANDBY') totalStby++;
         else totalInop++;
+
+        const w = getWarrantyInfo(eq.ovhDate);
+        const ovh = getOverhaulInfo(eq.horasActuales, eq.horasEnOvh, eq.specs, eq.modelo);
+        const isSeg = hasActiveSeguimiento(eq);
+        const isPendG = hasPendingGarantia(eq);
+        const hasHistory = eq.historial && eq.historial.length > 0;
+
+        if (ovh.isOverdue) overdueCount++;
+        if (w.status === 'active') warrantyCount++;
+        if (isSeg || isPendG) seguimientoCount++;
+        if (hasHistory) historyCount++;
+      });
+
+      if (document.getElementById('statAll')) document.getElementById('statAll').innerText = equipos.length;
+      if (document.getElementById('statOverdue')) document.getElementById('statOverdue').innerText = overdueCount;
+      if (document.getElementById('statWarranty')) document.getElementById('statWarranty').innerText = warrantyCount;
+      if (document.getElementById('statSeguimiento')) document.getElementById('statSeguimiento').innerText = seguimientoCount;
+      if (document.getElementById('statHistory')) document.getElementById('statHistory').innerText = historyCount;
+
+      if (document.getElementById('dashKpiOperativos')) document.getElementById('dashKpiOperativos').innerText = totalOp;
+      if (document.getElementById('dashKpiStandby')) document.getElementById('dashKpiStandby').innerText = totalStby;
+      if (document.getElementById('dashKpiInoperativos')) document.getElementById('dashKpiInoperativos').innerText = totalInop;
+
+      // Group filtered equipment by location
+      const locMap = {};
+      equipos.forEach(eq => {
+        const w = getWarrantyInfo(eq.ovhDate);
+        const ovh = getOverhaulInfo(eq.horasActuales, eq.horasEnOvh, eq.specs, eq.modelo);
+        const isSeg = hasActiveSeguimiento(eq);
+        const isPendG = hasPendingGarantia(eq);
+        const hasHistory = eq.historial && eq.historial.length > 0;
+
+        // Apply quick status filter
+        if (currentDashFilter === 'overdue' && !ovh.isOverdue) return;
+        if (currentDashFilter === 'warranty' && w.status !== 'active') return;
+        if (currentDashFilter === 'seguimiento' && !isSeg && !isPendG) return;
+        if (currentDashFilter === 'history' && !hasHistory) return;
+
+        // Apply search input
+        if (q) {
+          const matchText = [eq.tag, eq.modelo, eq.serieMotor, eq.serieGenset, eq.ubicacion, eq.otOvh, (eq.notas || []).map(n => n.texto).join(' ')].join(' ').toLowerCase();
+          if (!matchText.includes(q)) return;
+        }
+
+        const u = eq.ubicacion || 'SIN ASIGNAR';
+        if (!locMap[u]) locMap[u] = [];
+        locMap[u].push(eq);
       });
 
       const locKeys = Object.keys(locMap).sort((a, b) => {
@@ -2340,27 +2281,21 @@
         return a.localeCompare(b);
       });
 
-      document.getElementById('dashKpiLocations').innerText = locKeys.filter(k => k !== 'SIN ASIGNAR').length;
-      document.getElementById('dashKpiOperativos').innerText = totalOp;
-      document.getElementById('dashKpiStandby').innerText = totalStby;
-      document.getElementById('dashKpiInoperativos').innerText = totalInop;
+      if (document.getElementById('dashKpiLocations')) {
+        document.getElementById('dashKpiLocations').innerText = locKeys.filter(k => k !== 'SIN ASIGNAR').length;
+      }
 
       const container = document.getElementById('dashLocationsContainer');
       if (!container) return;
 
-      let html = '';
-      locKeys.forEach(loc => {
-        let eqList = locMap[loc];
+      if (locKeys.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--cat-text-muted);"><p style="font-size:16px; font-weight:700;">No se encontraron equipos</p><p style="font-size:12px; margin-top:4px;">Cambia la búsqueda o el filtro seleccionado.</p></div>';
+        return;
+      }
 
-        // Filter by dashboard search
-        if (q) {
-          const matchLoc = loc.toLowerCase().includes(q);
-          const matchedEngines = eqList.filter(e => {
-            return matchLoc || [e.tag, e.modelo, e.serieMotor, e.serieGenset].join(' ').toLowerCase().includes(q);
-          });
-          if (matchedEngines.length === 0) return;
-          eqList = matchedEngines;
-        }
+      let html = '';
+      locKeys.forEach((loc, idx) => {
+        let eqList = locMap[loc];
 
         // Sort inside location: Position 1 to 6, then TAG
         eqList.sort((a, b) => {
@@ -2378,24 +2313,22 @@
           else inopC++;
         });
 
-        html += `
-          <div class="location-card">
-            <div class="location-card-header">
-              <div class="location-card-title">
-                <span>📍</span> ${loc}
-              </div>
-              <div class="location-card-stats">
-                <span class="loc-stat-pill total">${eqList.length} eq</span>
-                <span class="loc-stat-pill op">🟢 ${opC}</span>
-                <span class="loc-stat-pill stby">🟡 ${stbyC}</span>
-                <span class="loc-stat-pill inop">🔴 ${inopC}</span>
-              </div>
-            </div>
-
-            <div class="location-engines-grid">
-              ${eqList.map(renderDashboardEngineCard).join('')}</div>
-          </div>
-        `;
+        html += '<div class="location-card">'
+          + '<div class="location-card-header">'
+          +   '<div class="location-card-title">'
+          +     '<span>📍</span> ' + loc
+          +   '</div>'
+          +   '<div class="location-card-stats">'
+          +     '<span class="loc-stat-pill total">' + eqList.length + ' eq</span>'
+          +     '<span class="loc-stat-pill op">🟢 ' + opC + '</span>'
+          +     '<span class="loc-stat-pill stby">🟡 ' + stbyC + '</span>'
+          +     '<span class="loc-stat-pill inop">🔴 ' + inopC + '</span>'
+          +   '</div>'
+          + '</div>'
+          + '<div class="location-engines-grid" style="padding:10px 12px; display:flex; flex-direction:column; gap:12px;">'
+          +   eqList.map(renderDashboardEngineCard).join('')
+          + '</div>'
+          + '</div>';
       });
 
       container.innerHTML = html;
@@ -2532,21 +2465,25 @@
 
     // Switch Navigation Tabs (4 TABS)
     function switchNav(tab) {
-      document.getElementById('viewEquipos').style.display = tab === 'equipos' ? 'flex' : 'none';
-      document.getElementById('searchSection').style.display = tab === 'equipos' ? 'flex' : 'none';
-      document.getElementById('quickStatsStrip').style.display = tab === 'equipos' ? 'flex' : 'none';
+      if (tab === 'equipos') tab = 'dashboard';
 
-      document.getElementById('viewDashboard').style.display = tab === 'dashboard' ? 'flex' : 'none';
-      document.getElementById('viewConsultas').style.display = tab === 'consultas' ? 'flex' : 'none';
-      document.getElementById('viewAjustes').style.display = tab === 'ajustes' ? 'flex' : 'none';
+      const vDash = document.getElementById('viewDashboard');
+      const vCons = document.getElementById('viewConsultas');
+      const vAjus = document.getElementById('viewAjustes');
 
-      document.getElementById('navBtnEquipos').classList.toggle('active', tab === 'equipos');
-      document.getElementById('navBtnDashboard').classList.toggle('active', tab === 'dashboard');
-      document.getElementById('navBtnConsultas').classList.toggle('active', tab === 'consultas');
-      document.getElementById('navBtnAjustes').classList.toggle('active', tab === 'ajustes');
+      if (vDash) vDash.style.display = tab === 'dashboard' ? 'flex' : 'none';
+      if (vCons) vCons.style.display = tab === 'consultas' ? 'flex' : 'none';
+      if (vAjus) vAjus.style.display = tab === 'ajustes' ? 'flex' : 'none';
+
+      const bDash = document.getElementById('navBtnDashboard');
+      const bCons = document.getElementById('navBtnConsultas');
+      const bAjus = document.getElementById('navBtnAjustes');
+
+      if (bDash) bDash.classList.toggle('active', tab === 'dashboard');
+      if (bCons) bCons.classList.toggle('active', tab === 'consultas');
+      if (bAjus) bAjus.classList.toggle('active', tab === 'ajustes');
 
       if (tab === 'dashboard') renderDashboard();
-      if (tab === 'equipos') renderCards();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3541,7 +3478,7 @@ ${novs || '- Sin novedades especificadas.'}`;
     // Service Worker registration with Network-First
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=10').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=11').then(reg => {
           reg.update();
         }).catch(() => {});
       });

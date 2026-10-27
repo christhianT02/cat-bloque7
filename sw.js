@@ -1,5 +1,5 @@
-// CAT Monitoreo Bloque 7 Service Worker (v10 - Network First)
-const CACHE_NAME = 'cat-bloque7-v10';
+// CAT Monitoreo Bloque 7 Service Worker (v11 - Network First)
+const CACHE_NAME = 'cat-bloque7-v11';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
