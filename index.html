@@ -1739,14 +1739,131 @@
     let driveUrl = 'https://script.google.com/macros/s/AKfycbxlSsVZUj5khWcvXooNdsWenSBHNLehxxiHfqe0hKGWnqGL_5CC0kWgeggYhr_DPXkO/exec';
 
     function init() {
-      const storedEq = localStorage.getItem('cat_b7_eq_v8');
-      equipos = storedEq ? JSON.parse(storedEq) : INITIAL_EQUIPOS;
+      // 1. Gather all data from current and legacy storage keys so user NEVER loses history!
+      const legacyEqKeys = ['cat_b7_eq_v8', 'cat_b7_eq_v6', 'cat_b7_eq_v5', 'cat_b7_eq_v4', 'cat_b7_eq_v3', 'cat_b7_eq_v2', 'cat_b7_equipos'];
+      
+      const savedHistByTag = {};
+      const savedNotasByTag = {};
+      const savedHoursByTag = {};
+      const savedOvhHoursByTag = {};
+      const savedUbiByTag = {};
+      const savedStateByTag = {};
+      const customAddedEquipos = [];
 
-      const storedRec = localStorage.getItem('cat_b7_rec_v8');
-      recipients = storedRec ? JSON.parse(storedRec) : INITIAL_RECIPIENTS;
+      legacyEqKeys.forEach(key => {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              list.forEach(eq => {
+                const tag = (eq.tag || '').toUpperCase().trim();
+                if (!tag) return;
 
-      const storedSt = localStorage.getItem('cat_b7_stations_v8');
-      stationsList = storedSt ? JSON.parse(storedSt) : INITIAL_STATIONS;
+                // Historial
+                if (Array.isArray(eq.historial) && eq.historial.length > 0) {
+                  if (!savedHistByTag[tag]) savedHistByTag[tag] = [];
+                  eq.historial.forEach(h => {
+                    const exists = savedHistByTag[tag].some(ex => (ex.id && h.id && ex.id === h.id) || (ex.fecha === h.fecha && ex.novedad === h.novedad));
+                    if (!exists) savedHistByTag[tag].push(h);
+                  });
+                }
+
+                // Notas
+                if (Array.isArray(eq.notas) && eq.notas.length > 0) {
+                  if (!savedNotasByTag[tag]) savedNotasByTag[tag] = [];
+                  eq.notas.forEach(n => {
+                    const exists = savedNotasByTag[tag].some(ex => ex.texto === n.texto);
+                    if (!exists) savedNotasByTag[tag].push(n);
+                  });
+                }
+
+                // Hours
+                if (eq.horasActuales !== undefined && eq.horasActuales !== null && Number(eq.horasActuales) > 0) {
+                  if (!savedHoursByTag[tag] || Number(eq.horasActuales) > savedHoursByTag[tag]) {
+                    savedHoursByTag[tag] = Number(eq.horasActuales);
+                  }
+                }
+                if (eq.horasEnOvh !== undefined && eq.horasEnOvh !== null && Number(eq.horasEnOvh) > 0) {
+                  savedOvhHoursByTag[tag] = Number(eq.horasEnOvh);
+                }
+
+                // Ubicacion & Estado
+                if (eq.ubicacion && eq.ubicacion !== 'SIN ASIGNAR' && !savedUbiByTag[tag]) {
+                  savedUbiByTag[tag] = eq.ubicacion;
+                }
+                if (eq.estado && !savedStateByTag[tag]) {
+                  savedStateByTag[tag] = eq.estado;
+                }
+
+                // Check if it's a new custom added equipment not in INITIAL_EQUIPOS
+                const inInitial = INITIAL_EQUIPOS.some(ie => ie.id === eq.id || (ie.tag && eq.tag && ie.tag.toUpperCase() === eq.tag.toUpperCase()));
+                if (!inInitial) {
+                  const alreadyAdded = customAddedEquipos.some(ce => ce.id === eq.id || (ce.tag && eq.tag && ce.tag.toUpperCase() === eq.tag.toUpperCase()));
+                  if (!alreadyAdded) customAddedEquipos.push(eq);
+                }
+              });
+            }
+          }
+        } catch(e) {}
+      });
+
+      // Merge into INITIAL_EQUIPOS
+      equipos = INITIAL_EQUIPOS.map(baseEq => {
+        const tag = (baseEq.tag || '').toUpperCase().trim();
+        const copy = { ...baseEq };
+
+        if (savedHistByTag[tag] && savedHistByTag[tag].length > 0) {
+          copy.historial = [...savedHistByTag[tag]];
+        } else if (!copy.historial) {
+          copy.historial = [];
+        }
+
+        if (savedNotasByTag[tag] && savedNotasByTag[tag].length > 0) {
+          copy.notas = [...savedNotasByTag[tag]];
+        } else if (!copy.notas) {
+          copy.notas = [];
+        }
+
+        if (savedHoursByTag[tag] !== undefined) {
+          copy.horasActuales = savedHoursByTag[tag];
+        }
+        if (savedOvhHoursByTag[tag] !== undefined) {
+          copy.horasEnOvh = savedOvhHoursByTag[tag];
+        }
+        if (savedUbiByTag[tag] && savedUbiByTag[tag] !== 'SIN ASIGNAR') {
+          copy.ubicacion = savedUbiByTag[tag];
+        }
+        if (savedStateByTag[tag]) {
+          copy.estado = savedStateByTag[tag];
+        }
+
+        return copy;
+      });
+
+      // Add custom added equipos
+      customAddedEquipos.forEach(ce => equipos.push(ce));
+
+      // Recipients & Stations
+      const legacyRecKeys = ['cat_b7_rec_v8', 'cat_b7_rec_v6', 'cat_b7_rec_v5', 'cat_b7_rec_v4', 'cat_b7_rec_v2'];
+      let storedRec = null;
+      for (const k of legacyRecKeys) {
+        const item = localStorage.getItem(k);
+        if (item) {
+          try { storedRec = JSON.parse(item); break; } catch(e) {}
+        }
+      }
+      recipients = storedRec || INITIAL_RECIPIENTS;
+
+      const legacyStKeys = ['cat_b7_stations_v8', 'cat_b7_stations_v6', 'cat_b7_stations'];
+      let storedSt = null;
+      for (const k of legacyStKeys) {
+        const item = localStorage.getItem(k);
+        if (item) {
+          try { storedSt = JSON.parse(item); break; } catch(e) {}
+        }
+      }
+      stationsList = storedSt || INITIAL_STATIONS;
 
       // Normalization rules:
       // "si no tiene asignado una ubicacion que sea Inoperativo"
@@ -1765,6 +1882,9 @@
         }
       });
       stationsList.sort();
+
+      // Save consolidated state
+      saveEq();
 
       renderStations();
       renderCards();
@@ -3215,19 +3335,63 @@ ${novs || '- Sin novedades especificadas.'}`;
 
     function mergeDriveData(remoteEquipos, remoteHistorial) {
       let updated = false;
-      remoteEquipos.forEach(rem => {
-        const local = equipos.find(e => e.tag.toUpperCase() === rem.tag.toUpperCase());
-        if (local) {
-          if (rem.ubicacion && rem.ubicacion !== local.ubicacion) {
-            local.ubicacion = rem.ubicacion;
-            updated = true;
+
+      // 1. Merge remote equipment fields (ubicacion, estado, horas, etc.)
+      if (Array.isArray(remoteEquipos)) {
+        remoteEquipos.forEach(rem => {
+          if (!rem.tag) return;
+          const local = equipos.find(e => e.tag.toUpperCase() === rem.tag.toUpperCase());
+          if (local) {
+            if (rem.ubicacion && rem.ubicacion !== local.ubicacion) {
+              local.ubicacion = rem.ubicacion;
+              updated = true;
+            }
+            if (rem.estado && rem.estado !== local.estado) {
+              local.estado = rem.estado;
+              updated = true;
+            }
+            if (rem.horas && Number(rem.horas) > Number(local.horasActuales || 0)) {
+              local.horasActuales = Number(rem.horas);
+              updated = true;
+            }
+            if (rem.ovhDate && rem.ovhDate !== local.ovhDate) {
+              local.ovhDate = rem.ovhDate;
+              updated = true;
+            }
+            if (rem.otOvh && rem.otOvh !== local.otOvh) {
+              local.otOvh = rem.otOvh;
+              updated = true;
+            }
           }
-          if (rem.estado && rem.estado !== local.estado) {
-            local.estado = rem.estado;
-            updated = true;
+        });
+      }
+
+      // 2. Merge remote historial from Google Drive / Google Sheet
+      if (Array.isArray(remoteHistorial) && remoteHistorial.length > 0) {
+        remoteHistorial.forEach(rh => {
+          if (!rh.tag) return;
+          const targetEq = equipos.find(e => e.tag.toUpperCase() === rh.tag.toUpperCase());
+          if (targetEq) {
+            if (!targetEq.historial) targetEq.historial = [];
+            const exists = targetEq.historial.some(h => {
+              if (h.id && rh.id && h.id === rh.id) return true;
+              return h.fecha === rh.fecha && h.novedad === rh.novedad;
+            });
+            if (!exists) {
+              targetEq.historial.unshift({
+                id: rh.id || ('H-' + Date.now()),
+                fecha: rh.fecha || '',
+                horas: Number(rh.horas) || 0,
+                novedad: rh.novedad || '',
+                otOvh: rh.otOvh || targetEq.otOvh || '',
+                tipo: rh.tipo || (rh.novedad && rh.novedad.toLowerCase().includes('garant') ? 'Garantía' : 'Seguimiento'),
+                estado: rh.estado || 'Pendiente'
+              });
+              updated = true;
+            }
           }
-        }
-      });
+        });
+      }
 
       if (updated) {
         saveEq();
