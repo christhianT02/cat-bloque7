@@ -1723,7 +1723,7 @@
       // 1. Try to load saved equipos from cat_b7_eq_v8
       let loadedEquipos = null;
       try {
-        const stored = localStorage.getItem('cat_b7_eq_v8');
+        const stored = localStorage.getItem('cat_b7_eq_v10');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -2792,6 +2792,7 @@ ${novs || '- Sin novedades especificadas.'}`;
       // "si no tiene asignado una ubicacion que sea Inoperativo"
       if (sel.value === 'SIN ASIGNAR' || sel.value === '') {
         document.getElementById('selectEditEstado').value = 'INOPERATIVO';
+        setEditPos(null);
       }
     }
 
@@ -2800,15 +2801,14 @@ ${novs || '- Sin novedades especificadas.'}`;
       if (!eq) return;
       activeEquipo = eq;
 
-      document.getElementById('editEquipoTitle').innerText = `✏️ Editar: ${eq.tag}`;
+      document.getElementById('editEquipoTitle').innerText = '✏️ Editar: ' + (eq.tag || '');
 
-      // Populate stations dropdown
       const sel = document.getElementById('selectEditUbicacion');
-      let stHtml = '';
-      stationsList.forEach(s => {
-        stHtml += `<option value="${s}" ${eq.ubicacion === s ? 'selected' : ''}>${s}</option>`;
+      let stHtml = '<option value="SIN ASIGNAR" ' + ((!eq.ubicacion || eq.ubicacion === 'SIN ASIGNAR') ? 'selected' : '') + '>⚠️ SIN ASIGNAR (Inoperativo)</option>';
+      stationsList.filter(s => s !== 'SIN ASIGNAR').forEach(s => {
+        stHtml += '<option value="' + s + '" ' + (eq.ubicacion === s ? 'selected' : '') + '>' + s + '</option>';
       });
-      stHtml += `<option value="__NEW__" style="color:var(--cat-yellow); font-weight:700;">➕ Agregar nueva estación...</option>`;
+      stHtml += '<option value="__NEW__" style="color:var(--cat-yellow); font-weight:700;">➕ Agregar nueva estación...</option>';
       sel.innerHTML = stHtml;
       document.getElementById('inputNewStationInline').style.display = 'none';
       document.getElementById('inputNewStationInline').value = '';
@@ -2953,29 +2953,11 @@ ${novs || '- Sin novedades especificadas.'}`;
 
     function handleAddStationChange() {
       const sel = document.getElementById('selectAddUbicacion');
-      const inlineInput = document.getElementById('inputAddStationInline');
-      if (sel.value === '__NEW__') {
-        inlineInput.style.display = 'block';
-        inlineInput.focus();
-      } else {
-        inlineInput.style.display = 'none';
-      }
-
-      if (sel.value === 'SIN ASIGNAR' || sel.value === '') {
-        document.getElementById('selectAddEstado').value = 'INOPERATIVO';
-      }
-    }
-
-    function openAddEquipoSheet() {
-      document.getElementById('inputAddTag').value = '';
-      document.getElementById('inputAddModelo').value = '';
-
-      const sel = document.getElementById('selectAddUbicacion');
-      let stHtml = '';
-      stationsList.forEach(s => {
-        stHtml += `<option value="${s}">${s}</option>`;
+      let stHtml = '<option value="SIN ASIGNAR">⚠️ SIN ASIGNAR (Inoperativo)</option>';
+      stationsList.filter(s => s !== 'SIN ASIGNAR').forEach(s => {
+        stHtml += '<option value="' + s + '">' + s + '</option>';
       });
-      stHtml += `<option value="__NEW__" style="color:var(--cat-yellow); font-weight:700;">➕ Agregar nueva estación...</option>`;
+      stHtml += '<option value="__NEW__" style="color:var(--cat-yellow); font-weight:700;">➕ Agregar nueva estación...</option>';
       sel.innerHTML = stHtml;
       document.getElementById('inputAddStationInline').style.display = 'none';
       document.getElementById('inputAddStationInline').value = '';
@@ -3250,37 +3232,9 @@ ${novs || '- Sin novedades especificadas.'}`;
     function mergeDriveData(remoteEquipos, remoteHistorial) {
       let updated = false;
 
-      // 1. Merge remote equipment fields (safe merge: NEVER overwrite user's local values with empty or older data!)
-      if (Array.isArray(remoteEquipos)) {
-        remoteEquipos.forEach(rem => {
-          if (!rem.tag) return;
-          const local = equipos.find(e => e.tag.toUpperCase() === rem.tag.toUpperCase());
-          if (local) {
-            // Horas: only take from remote if remote is higher than local
-            if (rem.horas && Number(rem.horas) > Number(local.horasActuales || 0)) {
-              local.horasActuales = Number(rem.horas);
-              updated = true;
-            }
-            // Ubicacion: only if local was unassigned
-            if (rem.ubicacion && rem.ubicacion !== 'SIN ASIGNAR' && (!local.ubicacion || local.ubicacion === 'SIN ASIGNAR')) {
-              local.ubicacion = rem.ubicacion;
-              updated = true;
-            }
-            // OT: only if local was empty
-            if (rem.otOvh && !local.otOvh) {
-              local.otOvh = rem.otOvh;
-              updated = true;
-            }
-            // OVH Date: only if local was empty
-            if (rem.ovhDate && !local.ovhDate) {
-              local.ovhDate = rem.ovhDate;
-              updated = true;
-            }
-          }
-        });
-      }
-
-      // 2. Merge remote historial from Google Drive / Google Sheet
+      // CRITICAL: Local edits by the technician on this device are SOVEREIGN.
+      // Google Drive sync must NEVER overwrite local equipment location, status, or hours!
+      // Drive sync only imports remote inspection / novelty records:
       if (Array.isArray(remoteHistorial) && remoteHistorial.length > 0) {
         remoteHistorial.forEach(rh => {
           if (!rh.tag) return;
@@ -3381,10 +3335,22 @@ ${novs || '- Sin novedades especificadas.'}`;
 
     // Storage Helpers
     function saveEq() {
-      localStorage.setItem('cat_b7_eq_v8', JSON.stringify(equipos));
+      localStorage.setItem('cat_b7_eq_v10', JSON.stringify(equipos));
     }
     function saveRec() {
       localStorage.setItem('cat_b7_rec_v8', JSON.stringify(recipients));
+    }
+
+    function factoryResetApp() {
+      if (confirm('¿Estás seguro de que deseas restaurar la app a su estado original de fábrica? Se restablecerán todos los equipos, ubicaciones y valores iniciales.')) {
+        localStorage.removeItem('cat_b7_eq_v10');
+        localStorage.removeItem('cat_b7_stations_v8');
+        localStorage.removeItem('cat_b7_rec_v8');
+        showToast('Restaurando datos de fábrica...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
     }
 
     function downloadBackup() {
